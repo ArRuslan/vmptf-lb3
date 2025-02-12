@@ -42,6 +42,7 @@ import com.rdev.nure.vmptflb3.api.entities.Article
 import com.rdev.nure.vmptflb3.api.entities.Comment
 import com.rdev.nure.vmptflb3.api.getApiClient
 import com.rdev.nure.vmptflb3.api.services.CommentService
+import com.rdev.nure.vmptflb3.components.AddCommentDialog
 import com.rdev.nure.vmptflb3.components.ArticleItem
 import com.rdev.nure.vmptflb3.components.InfiniteScrollLazyColumn
 import com.rdev.nure.vmptflb3.ui.theme.VMPtFLb3Theme
@@ -84,7 +85,6 @@ private val commentsApi: CommentService = getApiClient().create(CommentService::
 @Composable
 fun ArticleActivityComponent(article: Article) {
     val context = LocalContext.current
-
     val prefs = context.getSharedPreferences("auth_info", MODE_PRIVATE)
     if(
         (prefs.contains("expiresAt") && prefs.getLong("expiresAt", 0) < (System.currentTimeMillis() / 1000))
@@ -93,11 +93,12 @@ fun ArticleActivityComponent(article: Article) {
         prefs.edit().remove("authToken").remove("expiresAt").apply()
 
     val loggedIn = remember { mutableStateOf(prefs.contains("authToken")) }
+    val showPostComment = remember { mutableStateOf(false) }
 
     var hasMore by remember { mutableStateOf(true) }
     var page by remember { mutableIntStateOf(1) }
-    var totalCommentsCount by remember { mutableLongStateOf(0) }
-    var comments by remember { mutableStateOf(listOf<Comment>()) }
+    val totalCommentsCount = remember { mutableLongStateOf(0) }
+    val comments = remember { mutableStateOf(listOf<Comment>()) }
     val commentsState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
@@ -119,13 +120,21 @@ fun ArticleActivityComponent(article: Article) {
                 return@launch
             }
 
-            totalCommentsCount = body.count;
-            comments = comments + body.result;
+            totalCommentsCount.value = body.count;
+            comments.value += body.result;
             page++
 
             isLoading = false
         }
     }
+
+    if(showPostComment.value)
+        AddCommentDialog(
+            articleId = article.id,
+            show = showPostComment,
+            commentCount = totalCommentsCount,
+            comments = comments,
+        )
 
     Scaffold(
         topBar = {
@@ -145,9 +154,7 @@ fun ArticleActivityComponent(article: Article) {
         },
         floatingActionButton = if (loggedIn.value) {
             {
-                FloatingActionButton(onClick = {
-                    /* TODO: add comment */
-                }) {
+                FloatingActionButton(onClick = { showPostComment.value = true }) {
                     Icon(Icons.Default.Add, contentDescription = "Add")
                 }
             }
@@ -164,14 +171,16 @@ fun ArticleActivityComponent(article: Article) {
         ) {
             ArticleItem(article = article, fetchCommentsCount = false, isInList = false)
             Text(
-                text = "$totalCommentsCount comments"
+                text = "${totalCommentsCount.value} comments"
             )
             InfiniteScrollLazyColumn(
-                items = comments,
+                items = comments.value,
                 loadMoreItems = ::loadMoreComments,
                 listState = commentsState,
                 isLoading = isLoading,
-                modifier = Modifier.padding(4.dp).fillMaxWidth(),
+                modifier = Modifier
+                    .padding(4.dp)
+                    .fillMaxWidth(),
             )
         }
     }

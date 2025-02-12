@@ -22,7 +22,7 @@ import com.rdev.nure.vmptflb3.api.requests.LoginRequest
 import com.rdev.nure.vmptflb3.api.services.AuthService
 import kotlinx.coroutines.launch
 
-val authApi: AuthService = getApiClient().create(AuthService::class.java)
+private val authApi: AuthService = getApiClient().create(AuthService::class.java)
 
 @Composable
 fun LoginDialog(show: MutableState<Boolean>, loggedIn: MutableState<Boolean>) {
@@ -86,6 +86,7 @@ fun LoginDialog(show: MutableState<Boolean>, loggedIn: MutableState<Boolean>) {
             confirmButton = {
                 Button(
                     onClick = ::login,
+                    enabled = !isLoading,
                 ) {
                     Text(text = "Login")
                 }
@@ -94,7 +95,8 @@ fun LoginDialog(show: MutableState<Boolean>, loggedIn: MutableState<Boolean>) {
                 Button(
                     onClick = {
                         show.value = false
-                    }
+                    },
+                    enabled = !isLoading,
                 ) {
                     Text(text = "Cancel")
                 }
