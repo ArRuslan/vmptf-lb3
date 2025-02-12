@@ -32,7 +32,7 @@ fun AddCommentDialog(articleId: Long, show: MutableState<Boolean>, commentCount:
 
     var commentText by remember { mutableStateOf("") }
 
-    fun login() {
+    fun post() {
         coroutineScope.launch {
             if(isLoading)
                 return@launch
@@ -70,7 +70,7 @@ fun AddCommentDialog(articleId: Long, show: MutableState<Boolean>, commentCount:
             },
             confirmButton = {
                 Button(
-                    onClick = ::login,
+                    onClick = ::post,
                     enabled = !isLoading,
                 ) {
                     Text(text = "Post")

@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.rdev.nure.vmptflb3.components.AddArticleDialog
 import com.rdev.nure.vmptflb3.components.ArticlesList
 import com.rdev.nure.vmptflb3.components.LoginDialog
 import com.rdev.nure.vmptflb3.ui.theme.VMPtFLb3Theme
@@ -60,6 +61,7 @@ fun MainActivityComponent() {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val searchValue = remember { mutableStateOf("") }
     val showLogin = remember { mutableStateOf(false) }
+    val showCreateArticle = remember { mutableStateOf(false) }
 
     val prefs = context.getSharedPreferences("auth_info", MODE_PRIVATE)
     if(
@@ -72,6 +74,8 @@ fun MainActivityComponent() {
 
     if(showLogin.value)
         LoginDialog(show = showLogin, loggedIn = loggedIn)
+    if(showCreateArticle.value)
+        AddArticleDialog(show = showCreateArticle)
 
     Scaffold(
         topBar = {
@@ -144,7 +148,7 @@ fun MainActivityComponent() {
         },
         floatingActionButton = if (loggedIn.value) {
             {
-                FloatingActionButton(onClick = { }) {
+                FloatingActionButton(onClick = { showCreateArticle.value = true }) {
                     Icon(Icons.Default.Add, contentDescription = "Add")
                 }
             }
