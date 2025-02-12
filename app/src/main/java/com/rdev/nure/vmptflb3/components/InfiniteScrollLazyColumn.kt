@@ -19,14 +19,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rdev.nure.vmptflb3.api.entities.Article
+import com.rdev.nure.vmptflb3.api.entities.Comment
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 
 
 @SuppressLint("SimpleDateFormat")
 @Composable
-fun ArticlesInfiniteScrollLazyColumn(
-    items: List<Article>,
+fun <T> InfiniteScrollLazyColumn(
+    items: List<T>,
     loadMoreItems: () -> Unit,
     listState: LazyListState,
     modifier: Modifier = Modifier,
@@ -55,10 +56,21 @@ fun ArticlesInfiniteScrollLazyColumn(
     ) {
         itemsIndexed(
             items,
-            contentType = { _, _ -> Article::class },
+            contentType = { _, obj ->
+                when (obj) {
+                    is Article -> Article::class.java
+                    is Comment -> Comment::class.java
+                    else -> Unit::class.java
+                }
+            },
             key = { _, article -> article.hashCode() },
-        ) { _, article ->
-            ArticleItem(article = article)
+        ) { _, article_or_something ->
+            when (article_or_something) {
+                is Article -> ArticleItem(article = article_or_something as Article)
+                is Comment -> CommentItem(comment = article_or_something as Comment)
+                else -> null
+            }
+
             HorizontalDivider(modifier = Modifier.padding(8.dp))
         }
 

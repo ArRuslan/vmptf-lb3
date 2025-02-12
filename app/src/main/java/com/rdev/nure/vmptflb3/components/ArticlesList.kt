@@ -1,5 +1,6 @@
 package com.rdev.nure.vmptflb3.components
 
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
@@ -19,7 +20,7 @@ import com.rdev.nure.vmptflb3.api.services.ArticleService
 import kotlinx.coroutines.launch
 
 
-val articlesApi: ArticleService = getApiClient().create(ArticleService::class.java)
+private val articlesApi: ArticleService = getApiClient().create(ArticleService::class.java)
 
 @Composable
 fun ArticlesList(title: State<String>) {
@@ -47,7 +48,7 @@ fun ArticlesList(title: State<String>) {
             val body = articlesApi.fetchArticles(title = title.value, pageSize = 1, page = page).body()
                 ?: return@launch
 
-            if(body.count == 0L) {
+            if(body.result.isEmpty()) {
                 hasMore = false
                 isLoading = false
                 return@launch
@@ -65,11 +66,11 @@ fun ArticlesList(title: State<String>) {
         articlesState.scrollToItem(0)
     }
 
-    ArticlesInfiniteScrollLazyColumn(
+    InfiniteScrollLazyColumn(
         items = articles,
         loadMoreItems = ::loadMoreItems,
         listState = articlesState,
         isLoading = isLoading,
-        modifier = Modifier.padding(8.dp),
+        modifier = Modifier.padding(8.dp).fillMaxWidth(),
     )
 }
