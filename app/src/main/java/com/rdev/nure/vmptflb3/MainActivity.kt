@@ -83,7 +83,14 @@ fun MainActivityComponent() {
             ) { target ->
                 if (!target) {
                     TopAppBar(
-                        title = { Text("Articles") },
+                        title = {
+                            Text(
+                                text = if(searchValue.value.isNotBlank())
+                                    "Articles - ${searchValue.value}"
+                                else
+                                    "Articles"
+                            )
+                        },
                         actions = {
                             IconButton(onClick = { isSearch = !isSearch }) {
                                 Icon(Icons.Filled.Search, contentDescription = "Search")

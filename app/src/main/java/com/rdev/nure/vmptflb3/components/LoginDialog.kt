@@ -17,17 +17,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import com.rdev.nure.vmptflb3.api.Client
+import com.rdev.nure.vmptflb3.api.getApiClient
 import com.rdev.nure.vmptflb3.api.requests.LoginRequest
 import com.rdev.nure.vmptflb3.api.services.AuthService
 import kotlinx.coroutines.launch
+
+val authApi: AuthService = getApiClient().create(AuthService::class.java)
 
 @Composable
 fun LoginDialog(show: MutableState<Boolean>, loggedIn: MutableState<Boolean>) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    val articlesApi = Client.getClient().create(AuthService::class.java)
     var isLoading by remember { mutableStateOf(false) }
 
     var emailText by remember { mutableStateOf("") }
@@ -40,7 +41,7 @@ fun LoginDialog(show: MutableState<Boolean>, loggedIn: MutableState<Boolean>) {
 
             isLoading = true
 
-            val body = articlesApi.login(LoginRequest(emailText, passwordText)).body()
+            val body = authApi.login(LoginRequest(emailText, passwordText)).body()
                 ?: return@launch
 
             val prefs = context.getSharedPreferences("auth_info", MODE_PRIVATE)

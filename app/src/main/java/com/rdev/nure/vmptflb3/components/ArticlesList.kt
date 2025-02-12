@@ -13,15 +13,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.rdev.nure.vmptflb3.api.Client
+import com.rdev.nure.vmptflb3.api.getApiClient
 import com.rdev.nure.vmptflb3.api.entities.Article
 import com.rdev.nure.vmptflb3.api.services.ArticleService
 import kotlinx.coroutines.launch
 
+
+val articlesApi: ArticleService = getApiClient().create(ArticleService::class.java)
+
 @Composable
 fun ArticlesList(title: State<String>) {
-    val articlesApi = Client.getClient().create(ArticleService::class.java)
-
     var hasMore by remember { mutableStateOf(true) }
     var page by remember { mutableIntStateOf(1) }
 

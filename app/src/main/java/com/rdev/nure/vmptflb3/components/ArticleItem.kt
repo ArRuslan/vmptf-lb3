@@ -6,6 +6,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
@@ -14,13 +20,34 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.rdev.nure.vmptflb3.api.entities.Article
+import com.rdev.nure.vmptflb3.api.getApiClient
+import com.rdev.nure.vmptflb3.api.services.CommentService
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 
 @SuppressLint("SimpleDateFormat")
 val dateFormat = SimpleDateFormat("dd.MM.yyyy 'at' HH:mm")
+val commentApi: CommentService = getApiClient().create(CommentService::class.java)
 
 @Composable
-fun ArticleItem(article: Article) {
+fun ArticleItem(article: Article, fetchCommentsCount: Boolean = true) {
+    val coroutineScope = rememberCoroutineScope()
+    var commentsCount by remember { mutableLongStateOf(0) }
+
+    fun loadComments() {
+        if(!fetchCommentsCount) return;
+
+        coroutineScope.launch {
+            val resp = commentApi.fetchComments(articleId = article.id, page = 1, pageSize = 1).body() ?: return@launch
+
+            commentsCount = resp.count
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        loadComments()
+    }
+
     Column {
         Text(text = article.title, fontSize = 18.sp)
         Row(
@@ -66,6 +93,12 @@ fun ArticleItem(article: Article) {
                 ),
                 onClick = {}
             )
+            if(commentsCount > 0)
+                Text(
+                    text = ", $commentsCount comments",
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                )
         }
         Text(text = article.text, fontSize = 14.sp, color = Color.DarkGray)
     }
