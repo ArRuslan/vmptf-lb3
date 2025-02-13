@@ -1,6 +1,8 @@
 package com.rdev.nure.vmptflb3.components
 
 import android.content.Context.MODE_PRIVATE
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -17,10 +19,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.rdev.nure.vmptflb3.api.entities.Article
 import com.rdev.nure.vmptflb3.api.getApiClient
+import com.rdev.nure.vmptflb3.api.getErrorResponse
+import com.rdev.nure.vmptflb3.api.handleResponse
+import com.rdev.nure.vmptflb3.api.requests.CreateArticleRequest
 import com.rdev.nure.vmptflb3.api.requests.LoginRequest
+import com.rdev.nure.vmptflb3.api.responses.AuthResponse
+import com.rdev.nure.vmptflb3.api.responses.PaginationResponse
 import com.rdev.nure.vmptflb3.api.services.AuthService
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.io.IOException
 
 private val authApi: AuthService = getApiClient().create(AuthService::class.java)
 
@@ -34,18 +45,38 @@ fun LoginDialog(show: MutableState<Boolean>, loggedIn: MutableState<Boolean>) {
     var emailText by remember { mutableStateOf("") }
     var passwordText by remember { mutableStateOf("") }
 
-    fun login() {
+    fun login(networkRetry: Boolean = false) {
         coroutineScope.launch {
-            if(isLoading)
+            if(isLoading && !networkRetry)
                 return@launch
+            if(isLoading)
+                delay(1000)
 
             isLoading = true
 
-            val body = authApi.login(LoginRequest(emailText, passwordText)).body()
-                ?: return@launch
+            val success = handleResponse(
+                successResponse = {
+                    val prefs = context.getSharedPreferences("auth_info", MODE_PRIVATE)
+                    prefs.edit().putString("authToken", it.token).putLong("expiresAt", it.expires_at).apply()
+                },
+                errorResponse = {
+                    isLoading = false
+                    Toast.makeText(context, it.errors[0], Toast.LENGTH_SHORT).show()
+                },
+                onHttpError = {
+                    isLoading = false
+                    Toast.makeText(context, "Failed to log in!", Toast.LENGTH_SHORT).show()
+                },
+                onNetworkError = {
+                    Toast.makeText(context, "No internet connection!", Toast.LENGTH_SHORT).show()
+                    login(true)
+                },
+            ) {
+                authApi.login(LoginRequest(emailText, passwordText))
+            }
 
-            val prefs = context.getSharedPreferences("auth_info", MODE_PRIVATE)
-            prefs.edit().putString("authToken", body.token).putLong("expiresAt", body.expires_at).apply()
+            if(!success)
+                return@launch
 
             isLoading = false
 

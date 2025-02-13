@@ -18,11 +18,23 @@ import androidx.compose.ui.platform.LocalContext
 import com.rdev.nure.vmptflb3.api.entities.Article
 import com.rdev.nure.vmptflb3.api.entities.Category
 import com.rdev.nure.vmptflb3.api.getApiClient
+import com.rdev.nure.vmptflb3.api.getErrorResponse
+import com.rdev.nure.vmptflb3.api.handleResponse
 import com.rdev.nure.vmptflb3.api.requests.CreateArticleRequest
+import com.rdev.nure.vmptflb3.api.requests.LoginRequest
+import com.rdev.nure.vmptflb3.api.responses.AuthResponse
+import com.rdev.nure.vmptflb3.api.responses.ErrorResponse
 import com.rdev.nure.vmptflb3.api.services.ArticleService
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import retrofit2.Response
+import java.io.Closeable
+import java.io.IOException
 
 private val articlesApi: ArticleService = getApiClient().create(ArticleService::class.java)
+
+
 
 @Composable
 fun AddArticleDialog(show: MutableState<Boolean>, articles: MutableState<List<Article>>? = null) {
@@ -37,18 +49,37 @@ fun AddArticleDialog(show: MutableState<Boolean>, articles: MutableState<List<Ar
     var articleText by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf<Category?>(null) }
 
-    fun create() {
+    fun create(networkRetry: Boolean = false) {
         coroutineScope.launch {
-            if(isLoading)
+            if(isLoading && !networkRetry)
                 return@launch
+            if(isLoading)
+                delay(1000)
 
             isLoading = true
 
-            val body = articlesApi.createArticle(CreateArticleRequest(titleText, articleText, selectedCategory!!.id), "Bearer $authToken").body()
-                ?: return@launch
+            val success = handleResponse(
+                successResponse = {
+                    if(articles != null)
+                        articles.value = listOf(it) + articles.value;
+                },
+                errorResponse = {
+                    Toast.makeText(context, it.errors[0], Toast.LENGTH_SHORT).show()
+                },
+                onHttpError = {
+                    isLoading = false
+                    Toast.makeText(context, "Failed to create article!", Toast.LENGTH_SHORT).show()
+                },
+                onNetworkError = {
+                    Toast.makeText(context, "No internet connection!", Toast.LENGTH_SHORT).show()
+                    create(true)
+                },
+            ) {
+                articlesApi.createArticle(CreateArticleRequest(titleText, articleText, selectedCategory!!.id), "Bearer $authToken")
+            }
 
-            if(articles != null)
-                articles.value = listOf(body) + articles.value;
+            if(!success)
+                return@launch
 
             isLoading = false
             show.value = false

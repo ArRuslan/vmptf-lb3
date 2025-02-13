@@ -1,6 +1,7 @@
 package com.rdev.nure.vmptflb3.components
 
 import android.content.Context.MODE_PRIVATE
+import android.widget.Toast
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -15,8 +16,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.rdev.nure.vmptflb3.api.entities.Comment
 import com.rdev.nure.vmptflb3.api.getApiClient
+import com.rdev.nure.vmptflb3.api.handleResponse
+import com.rdev.nure.vmptflb3.api.requests.CreateArticleRequest
 import com.rdev.nure.vmptflb3.api.requests.PostCommentRequest
 import com.rdev.nure.vmptflb3.api.services.CommentService
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private val commentsApi: CommentService = getApiClient().create(CommentService::class.java)
@@ -32,20 +36,39 @@ fun AddCommentDialog(articleId: Long, show: MutableState<Boolean>, commentCount:
 
     var commentText by remember { mutableStateOf("") }
 
-    fun post() {
+    fun post(networkRetry: Boolean = false) {
         coroutineScope.launch {
-            if(isLoading)
+            if(isLoading && !networkRetry)
                 return@launch
+            if(isLoading)
+                delay(1000)
 
             isLoading = true
 
-            val body = commentsApi.postComment(articleId, PostCommentRequest(commentText), "Bearer $authToken").body()
-                ?: return@launch
+            val success = handleResponse(
+                successResponse = {
+                    if(comments != null)
+                        comments.value = listOf(it) + comments.value;
+                    if(commentCount != null)
+                        commentCount.value += 1;
+                },
+                errorResponse = {
+                    Toast.makeText(context, it.errors[0], Toast.LENGTH_SHORT).show()
+                },
+                onHttpError = {
+                    isLoading = false
+                    Toast.makeText(context, "Failed to create article!", Toast.LENGTH_SHORT).show()
+                },
+                onNetworkError = {
+                    Toast.makeText(context, "No internet connection!", Toast.LENGTH_SHORT).show()
+                    post(true)
+                },
+            ) {
+                commentsApi.postComment(articleId, PostCommentRequest(commentText), "Bearer $authToken")
+            }
 
-            if(comments != null)
-                comments.value = listOf(body) + comments.value;
-            if(commentCount != null)
-                commentCount.value += 1;
+            if(!success)
+                return@launch
 
             isLoading = false
             show.value = false

@@ -2,6 +2,7 @@ package com.rdev.nure.vmptflb3.components
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,7 +33,10 @@ import com.rdev.nure.vmptflb3.api.entities.Article
 import com.rdev.nure.vmptflb3.api.entities.Category
 import com.rdev.nure.vmptflb3.api.entities.User
 import com.rdev.nure.vmptflb3.api.getApiClient
+import com.rdev.nure.vmptflb3.api.handleResponse
+import com.rdev.nure.vmptflb3.api.requests.PostCommentRequest
 import com.rdev.nure.vmptflb3.api.services.CommentService
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 
@@ -52,13 +56,21 @@ fun ArticleItem(
     val coroutineScope = rememberCoroutineScope()
     var commentsCount by remember { mutableLongStateOf(0) }
 
-    fun loadComments() {
+    fun loadComments(networkRetry: Boolean = false) {
         if(!fetchCommentsCount) return;
 
         coroutineScope.launch {
-            val resp = commentApi.fetchComments(articleId = article.id, page = 1, pageSize = 1).body() ?: return@launch
+            if(networkRetry)
+                delay(1000)
 
-            commentsCount = resp.count
+            handleResponse(
+                successResponse = { commentsCount = it.count },
+                errorResponse = {},
+                onHttpError = {},
+                onNetworkError = { loadComments(true) },
+            ) {
+                commentApi.fetchComments(articleId = article.id, page = 1, pageSize = 1)
+            }
         }
     }
 
