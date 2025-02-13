@@ -19,6 +19,8 @@ interface ArticleService {
         @Query("title") title: String? = null,
         @Query("page") page: Int? = null,
         @Query("page_size") pageSize: Int? = null,
+        @Query("publisher_id") publisherId: Long? = null,
+        @Query("category_id") categoryId: Long? = null,
     ): Response<PaginationResponse<Article>>
 
     @POST("/articles")

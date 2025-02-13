@@ -11,6 +11,7 @@ import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
@@ -26,9 +27,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat.startActivity
 import com.rdev.nure.vmptflb3.ArticleActivity
 import com.rdev.nure.vmptflb3.api.entities.Article
+import com.rdev.nure.vmptflb3.api.entities.Category
+import com.rdev.nure.vmptflb3.api.entities.User
 import com.rdev.nure.vmptflb3.api.getApiClient
 import com.rdev.nure.vmptflb3.api.services.CommentService
 import kotlinx.coroutines.launch
@@ -39,7 +41,13 @@ private val dateFormat = SimpleDateFormat("dd.MM.yyyy 'at' HH:mm")
 private val commentApi: CommentService = getApiClient().create(CommentService::class.java)
 
 @Composable
-fun ArticleItem(article: Article, fetchCommentsCount: Boolean = true, isInList: Boolean = true) {
+fun ArticleItem(
+    article: Article,
+    fetchCommentsCount: Boolean = true,
+    isInList: Boolean = true,
+    publisherState: MutableState<User?>? = null,
+    categoryState: MutableState<Category?>? = null,
+) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var commentsCount by remember { mutableLongStateOf(0) }
@@ -92,7 +100,11 @@ fun ArticleItem(article: Article, fetchCommentsCount: Boolean = true, isInList: 
                     fontSize = 12.sp,
                     color = Color.Gray,
                 ),
-                onClick = {}
+                onClick = {
+                    if(publisherState == null)
+                        return@ClickableText
+                    publisherState.value = article.publisher
+                }
             )
             ClickableText(
                 text = AnnotatedString(
@@ -109,7 +121,11 @@ fun ArticleItem(article: Article, fetchCommentsCount: Boolean = true, isInList: 
                     fontSize = 12.sp,
                     color = Color.Gray,
                 ),
-                onClick = {}
+                onClick = {
+                    if(categoryState == null)
+                        return@ClickableText
+                    categoryState.value = article.category
+                }
             )
             if(commentsCount > 0)
                 Text(

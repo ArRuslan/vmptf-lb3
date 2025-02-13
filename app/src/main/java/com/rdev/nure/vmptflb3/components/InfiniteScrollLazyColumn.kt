@@ -12,6 +12,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
@@ -19,7 +21,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rdev.nure.vmptflb3.api.entities.Article
+import com.rdev.nure.vmptflb3.api.entities.Category
 import com.rdev.nure.vmptflb3.api.entities.Comment
+import com.rdev.nure.vmptflb3.api.entities.User
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 
@@ -33,6 +37,9 @@ fun <T> InfiniteScrollLazyColumn(
     modifier: Modifier = Modifier,
     buffer: Int = 2,
     isLoading: Boolean,
+
+    articlesPublisherState: MutableState<User?>? = null,
+    articlesCategoryState: MutableState<Category?>? = null,
 ) {
     val shouldLoadMore = remember {
         derivedStateOf {
@@ -66,7 +73,7 @@ fun <T> InfiniteScrollLazyColumn(
             key = { _, article -> article.hashCode() },
         ) { _, article_or_something ->
             when (article_or_something) {
-                is Article -> ArticleItem(article = article_or_something as Article)
+                is Article -> ArticleItem(article = article_or_something as Article, publisherState = articlesPublisherState, categoryState = articlesCategoryState)
                 is Comment -> CommentItem(comment = article_or_something as Comment)
                 else -> null
             }

@@ -6,7 +6,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -36,11 +35,11 @@ fun AutoCompleteCategoryField(
     var text by remember { mutableStateOf("") }
     var suggestions by remember { mutableStateOf(emptyList<Category>()) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
-    var debounceJob by remember { mutableStateOf<Job?>(null) }
+    var suggestionsJob by remember { mutableStateOf<Job?>(null) }
 
     LaunchedEffect(text) {
-        debounceJob?.cancel()
-        debounceJob = launch {
+        suggestionsJob?.cancel()
+        suggestionsJob = launch {
             val categories = categoriesApi.fetchArticles(text, 1, 10).body()
             if(categories == null) {
                 suggestions = emptyList()

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -35,6 +36,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.rdev.nure.vmptflb3.api.entities.Category
+import com.rdev.nure.vmptflb3.api.entities.User
 import com.rdev.nure.vmptflb3.components.AddArticleDialog
 import com.rdev.nure.vmptflb3.components.ArticlesList
 import com.rdev.nure.vmptflb3.components.LoginDialog
@@ -62,6 +65,8 @@ fun MainActivityComponent() {
     val searchValue = remember { mutableStateOf("") }
     val showLogin = remember { mutableStateOf(false) }
     val showCreateArticle = remember { mutableStateOf(false) }
+    val publisher = remember { mutableStateOf<User?>(null) }
+    val category = remember { mutableStateOf<Category?>(null) }
 
     val prefs = context.getSharedPreferences("auth_info", MODE_PRIVATE)
     if(
@@ -77,6 +82,14 @@ fun MainActivityComponent() {
     if(showCreateArticle.value)
         AddArticleDialog(show = showCreateArticle)
 
+    var titleText = "Articles"
+    if(searchValue.value.isNotBlank())
+        titleText += " - ${searchValue.value}"
+    if(publisher.value != null)
+        titleText += ", by ${publisher.value!!.name}"
+    if(category.value != null)
+        titleText += ", in ${category.value!!.name}"
+
     Scaffold(
         topBar = {
             var isSearch by remember { mutableStateOf(false) }
@@ -88,14 +101,16 @@ fun MainActivityComponent() {
                 if (!target) {
                     TopAppBar(
                         title = {
-                            Text(
-                                text = if(searchValue.value.isNotBlank())
-                                    "Articles - ${searchValue.value}"
-                                else
-                                    "Articles"
-                            )
+                            Text(text = titleText)
                         },
                         actions = {
+                            if(publisher.value != null || category.value != null)
+                                IconButton(onClick = {
+                                    publisher.value = null
+                                    category.value = null
+                                }) {
+                                    Icon(Icons.Outlined.Clear, contentDescription = "Clear publisher and category")
+                                }
                             IconButton(onClick = { isSearch = !isSearch }) {
                                 Icon(Icons.Filled.Search, contentDescription = "Search")
                             }
@@ -160,7 +175,11 @@ fun MainActivityComponent() {
             modifier = Modifier.padding(innerPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            ArticlesList(title = searchValue)
+            ArticlesList(
+                title = searchValue,
+                publisher = publisher,
+                category = category,
+            )
         }
     }
 }
