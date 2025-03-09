@@ -71,9 +71,9 @@ fun MainActivityComponent() {
     val prefs = context.getSharedPreferences("auth_info", MODE_PRIVATE)
     if(
         (prefs.contains("expiresAt") && prefs.getLong("expiresAt", 0) < (System.currentTimeMillis() / 1000))
-        || !prefs.contains("authToken") || !prefs.contains("expiresAt")
+        || !prefs.contains("authToken") || !prefs.contains("expiresAt") || !prefs.contains("userId")
     )
-        prefs.edit().remove("authToken").remove("expiresAt").apply()
+        prefs.edit().remove("authToken").remove("expiresAt").remove("userId").apply()
 
     val loggedIn = remember { mutableStateOf(prefs.contains("authToken")) }
 

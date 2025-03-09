@@ -57,7 +57,7 @@ fun LoginDialog(show: MutableState<Boolean>, loggedIn: MutableState<Boolean>) {
             val success = handleResponse(
                 successResponse = {
                     val prefs = context.getSharedPreferences("auth_info", MODE_PRIVATE)
-                    prefs.edit().putString("authToken", it.token).putLong("expiresAt", it.expires_at).apply()
+                    prefs.edit().putString("authToken", it.token).putLong("expiresAt", it.expires_at).putLong("userId", it.user.id).apply()
                 },
                 errorResponse = {
                     isLoading = false

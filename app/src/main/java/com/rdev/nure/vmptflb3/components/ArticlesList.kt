@@ -82,7 +82,7 @@ fun ArticlesList(title: State<String>, publisher: MutableState<User?>, category:
             ) {
                 articlesApi.fetchArticles(
                     title = title.value,
-                    pageSize = 1,
+                    pageSize = 10,
                     page = page,
                     publisherId = publisher.value?.id,
                     categoryId = category.value?.id,

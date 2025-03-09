@@ -5,3 +5,8 @@ data class CreateArticleRequest(
     val text: String,
     val category_id: Long,
 )
+
+data class EditArticleRequest(
+    val title: String,
+    val text: String,
+)

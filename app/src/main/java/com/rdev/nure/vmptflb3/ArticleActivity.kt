@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.ContextWrapper
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -18,6 +19,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -41,9 +45,15 @@ import androidx.compose.ui.unit.dp
 import com.rdev.nure.vmptflb3.api.entities.Article
 import com.rdev.nure.vmptflb3.api.entities.Comment
 import com.rdev.nure.vmptflb3.api.getApiClient
+import com.rdev.nure.vmptflb3.api.getErrorResponse
+import com.rdev.nure.vmptflb3.api.handleResponse
+import com.rdev.nure.vmptflb3.api.requests.PostCommentRequest
+import com.rdev.nure.vmptflb3.api.responses.ErrorResponse
+import com.rdev.nure.vmptflb3.api.services.ArticleService
 import com.rdev.nure.vmptflb3.api.services.CommentService
 import com.rdev.nure.vmptflb3.components.AddCommentDialog
 import com.rdev.nure.vmptflb3.components.ArticleItem
+import com.rdev.nure.vmptflb3.components.EditArticleDialog
 import com.rdev.nure.vmptflb3.components.InfiniteScrollLazyColumn
 import com.rdev.nure.vmptflb3.ui.theme.VMPtFLb3Theme
 import kotlinx.coroutines.launch
@@ -79,6 +89,7 @@ fun Context.getActivity(): Activity? = when (this) {
     else -> null
 }
 
+private val articlesApi: ArticleService = getApiClient().create(ArticleService::class.java)
 private val commentsApi: CommentService = getApiClient().create(CommentService::class.java)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,12 +99,16 @@ fun ArticleActivityComponent(article: Article) {
     val prefs = context.getSharedPreferences("auth_info", MODE_PRIVATE)
     if(
         (prefs.contains("expiresAt") && prefs.getLong("expiresAt", 0) < (System.currentTimeMillis() / 1000))
-        || !prefs.contains("authToken") || !prefs.contains("expiresAt")
+        || !prefs.contains("authToken") || !prefs.contains("expiresAt") || !prefs.contains("userId")
     )
-        prefs.edit().remove("authToken").remove("expiresAt").apply()
+        prefs.edit().remove("authToken").remove("expiresAt").remove("userId").apply()
 
     val loggedIn = remember { mutableStateOf(prefs.contains("authToken")) }
+    val authToken = prefs.getString("authToken", "")!!
+    val userId = remember { mutableLongStateOf(prefs.getLong("userId", 0)) }
     val showPostComment = remember { mutableStateOf(false) }
+    val showEditArticle = remember { mutableStateOf(false) }
+    val articleMut = remember { mutableStateOf(article) }
 
     var hasMore by remember { mutableStateOf(true) }
     var page by remember { mutableIntStateOf(1) }
@@ -120,7 +135,7 @@ fun ArticleActivityComponent(article: Article) {
                 return@launch
             }
 
-            totalCommentsCount.value = body.count;
+            totalCommentsCount.longValue = body.count;
             comments.value += body.result;
             page++
 
@@ -135,6 +150,11 @@ fun ArticleActivityComponent(article: Article) {
             commentCount = totalCommentsCount,
             comments = comments,
         )
+    if(showEditArticle.value)
+        EditArticleDialog(
+            show = showEditArticle,
+            article = articleMut,
+        )
 
     Scaffold(
         topBar = {
@@ -146,10 +166,44 @@ fun ArticleActivityComponent(article: Article) {
                         IconButton(onClick = { context.getActivity()!!.finish() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
-                        Text(text = article.title)
+                        Text(text = articleMut.value.title)
                     }
                 },
                 scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(),
+                actions = {
+                    if(article.publisher.id == userId.longValue) {
+                        IconButton(onClick = {
+                            showEditArticle.value = true
+                        }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit")
+                        }
+                        IconButton(onClick = {
+                            coroutineScope.launch {
+                                val resp = articlesApi.deleteArticle(article.id, "Bearer $authToken")
+                                if(resp.code() == 204) {
+                                    context.getActivity()!!.finish()
+                                    return@launch
+                                }
+
+                                if(resp.code() < 400) {
+                                    Toast.makeText(context, "Unknown error", Toast.LENGTH_SHORT).show()
+                                    return@launch
+                                }
+
+                                resp.getErrorResponse()?.let {
+                                    if(it.errors.isEmpty())
+                                        Toast.makeText(context, "Unknown error", Toast.LENGTH_SHORT).show()
+                                    else
+                                        Toast.makeText(context, it.errors[0], Toast.LENGTH_SHORT).show()
+                                } ?: run {
+                                    Toast.makeText(context, "Unknown error", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                        }
+                    }
+                }
             )
         },
         floatingActionButton = if (loggedIn.value) {
@@ -169,9 +223,9 @@ fun ArticleActivityComponent(article: Article) {
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            ArticleItem(article = article, fetchCommentsCount = false, isInList = false)
+            ArticleItem(article = articleMut.value, fetchCommentsCount = false, isInList = false)
             Text(
-                text = "${totalCommentsCount.value} comments"
+                text = "${totalCommentsCount.longValue} comments"
             )
             InfiniteScrollLazyColumn(
                 items = comments.value,
